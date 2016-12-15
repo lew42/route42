@@ -1,4 +1,1 @@
-var Router = require("./Router.js");
-module.exports = Router({
-	name: "global_route42"
-});
+module.exports = require("./Route");

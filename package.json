@@ -7,5 +7,16 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
-  "license": "UNLICENSED"
+  "license": "UNLICENSED",
+  "dependencies": {
+    "history": "^4.4.1",
+    "jquery": "^3.1.1",
+    "log42": "^1.0.0",
+    "mod42": "^1.0.0",
+    "util42": "^1.0.1",
+    "view42": "^1.0.0"
+  },
+  "devDependencies": {
+    "test42": "^1.0.0"
+  }
 }

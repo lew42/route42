@@ -1,7 +1,7 @@
 var Mod1 = require("mod42/Mod1");
 var Mod2 = require("mod42/Mod2");
 var Mod3 = require("mod42/Mod3");
-var is = require("is");
+var is = require("util42").is;
 var Route = require("./Route");
 var History = require("history").createBrowserHistory;
 

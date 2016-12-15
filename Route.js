@@ -2,7 +2,7 @@ var Mod1 = require("mod42/Mod1");
 var Mod2 = require("mod42/Mod2");
 var Mod3 = require("mod42/Mod3");
 var Mod4 = require("mod42/Mod4");
-var is = require("is");
+var is = require("util42").is;
 
 var shared = require("./shared");
 
@@ -37,7 +37,7 @@ var Route = module.exports = Mod2.Sub.extend({
 			parent: this
 		});
 	},
-	// name might/be/a/path
+	// might/be/a/path
 	parsePath: function(){
 		var bridgeParts;
 		this.log("path:", this.path);

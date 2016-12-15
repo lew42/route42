@@ -1,20 +1,18 @@
-var View = require("View");
-var Item = require("Item");
-var Expandable = require("Expandable");
+var View = require("view42");
 
-var RouteView = module.exports = View.AutoSub.extend({
+var RouteView = module.exports = View.extend({
 	name: "RouteView",
 	addClass: "route light",
 	expand: true,
 	css: {
 		marginBottom: "3px"
 	},
-	Header: View.AutoSub.extend({
+	header: View.x({
 		addClass: "header",
 		content: function(){
 			var routeView = this.parent;
 			var route = routeView.parent;
-			this.item = Item({
+			this.item = View.Item({
 				icon: "bullseye",
 				label: route.part,
 				content: function(){
@@ -33,7 +31,7 @@ var RouteView = module.exports = View.AutoSub.extend({
 			}).css("margin-bottom", "0");
 		}
 	}),
-	Body: View.AutoSub.extend({
+	body: View.x({
 		addClass: "body",
 		content: function(){
 			var routeView = this.parent;
