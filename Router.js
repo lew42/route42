@@ -12,7 +12,6 @@ var RouterView = require("./RouterView");
 
 var shared = require("./shared");
 
-// TODO Router should extend Route...
 var Router = module.exports = Route.extend({
 	// log: true,
 	name: "Router42",

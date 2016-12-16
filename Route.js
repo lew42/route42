@@ -15,6 +15,7 @@ var Route = module.exports = Mod2.Sub.extend({
 	name: "Route42",
 	View: RouteView,
 	// log: true,
+	expand: true,
 	set: {
 		other: function(route, value){
 			route.path = value;
@@ -207,6 +208,11 @@ var Route = module.exports = Mod2.Sub.extend({
 			this.log.end();
 		}
 		this.log.end();
+	},
+	each: function(fn){
+		for (var i = 0; i < this.routes.length; i++){
+			fn.call(this, this.routes[i], i);
+		}
 	}
 });
 

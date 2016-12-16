@@ -3,7 +3,6 @@ var View = require("view42");
 var RouteView = module.exports = View.extend({
 	name: "RouteView",
 	addClass: "route light",
-	expand: true,
 	css: {
 		marginBottom: "3px"
 	},
@@ -57,7 +56,7 @@ var RouteView = module.exports = View.extend({
 	content: function(){
 		this.addClass("route-" + this.parent.id);
 		this.header.render();
-		if (!this.expand)
+		if (!this.parent.expand)
 			this.body.hide();
 		this.body.render();
 	},
