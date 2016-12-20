@@ -9,6 +9,7 @@
   "author": "",
   "license": "UNLICENSED",
   "dependencies": {
+    "bluebird": "^3.4.6",
     "history": "^4.4.1",
     "jquery": "^3.1.1",
     "log42": "^1.0.0",
