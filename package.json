@@ -18,6 +18,10 @@
     "view42": "^1.0.0"
   },
   "devDependencies": {
+    "css-loader": "^0.26.1",
+    "less": "^2.7.1",
+    "less-loader": "^2.2.3",
+    "style-loader": "^0.13.1",
     "test42": "^1.0.0"
   }
 }

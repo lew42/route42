@@ -7,11 +7,14 @@ var Promise = require("bluebird");
 
 var shared = require("../shared");
 
+var RouteView = require("./RouteView");
+
 var logger = require("log42");
 var log = logger();
 
 var Route = module.exports = Mod2.Sub.extend({
 	name: "Route3",
+	View: RouteView,
 	log: true,
 	cbs: [],
 	dcbs: [],
@@ -22,12 +25,17 @@ var Route = module.exports = Mod2.Sub.extend({
 				route.set_path(value);
 			else
 				console.warn("ehh");
+		},
+		Method: {
+			disable_return: true
 		}
 	},
 	set_parent: function(parent, name){
 		if (parent instanceof Route){
 			if (this.hasOwnProperty("parent"))
 				console.warn("override route.parent?");
+
+			parent.routes.push(this);
 
 			this.parent = parent;
 			this.router = parent.router;
@@ -39,6 +47,19 @@ var Route = module.exports = Mod2.Sub.extend({
 	},
 	init: function(){
 		this.log("new route:", this.path);
+		this.cbs.push(function(){
+			// debugger;
+			return this.view.header.label.slideDown().$el.promise();
+		});
+		this.dcbs.push(function(){
+			// debugger;
+			return this.view.header.label.slideUp().$el.promise();
+		});
+	},
+	render: function(){
+		this.view = new this.View({
+			parent: this
+		});
 	},
 	makeFullPath: function(){
 		if (this.part){	
@@ -54,6 +75,8 @@ var Route = module.exports = Mod2.Sub.extend({
 			return this.path;
 		}
 	},
+	// .path is mapped to .part, and then a full path is made
+	// "path" just makes more sense, as an API: { path: "yo" }
 	set_path: function(path){
 		if (path.indexOf("/") > -1){
 			console.warn("bridging needed");
@@ -61,15 +84,15 @@ var Route = module.exports = Mod2.Sub.extend({
 			this.part = path;
 			this.name = this.part;
 			this.makeFullPath();
+			this.relPath = this.path.replace(this.router.path, "");
 		}
 	},
 	each: function(fn){
 		var ret;
 		for (var i = 0; i < this.routes.length; i++){
 			ret = fn.call(this, this.routes[i], i);
-			if (is.def(ret)){
+			if (ret) // return truthy breaks the loop, falsey continues
 				return ret;
-			}
 		}
 	},
 	match: function(parts){
@@ -80,41 +103,82 @@ var Route = module.exports = Mod2.Sub.extend({
 		}
 	},
 	matchChildren: function(parts){
-		var match;
+		var childMatch;
 		if (parts.length){
-			match = this.each(function(route){
-				var match = route.match(parts);
-				if (match)
-					return match;
+			childMatch = this.each(function(route){
+				console.log("child:", route);
+				// truthy breaks loop, falsey continues search
+				return route.match(parts);
 			});
 		}
-		return {
+
+		return childMatch || {
 			route: this,
-			remaining: remaining
-		}
+			remainder: parts
+		};
 	},
+	// create blank routes for all of these
+	bridge: function(parts){
+		var next = this;
+		for (var i = 0; i < parts.length; i++){
+			next = next.add(parts[i]);
+		}
+		return next;
+	},
+	// find the correct parent to add the new route to
+	// if the new path has a "/" ("a/b"), then we need to first add a, then b
+	// this is the "bridging", where we fill the gaps between all/the/child/routes/that/might/not/exist.
 	add: function(route){
-		var args;
-		// do the matching here
-		if (!(route instanceof Route)){
-			args = [].slice.call(arguments, 0);
-			args.unshift({
-				parent: this
-			});
-			route = Route.apply(null, args);
+		// get the parts
+		var path = is.str(route) ? route : route.path;
+		var parts = shared.parts(path);
+
+		// find the appropriate parent
+		// could be this, an existing child, or it might not exist yet
+		var parent;
+
+		// search for an existing child
+		var match = this.matchChildren(parts);
+
+		if (match){
+			// exact match was found 
+			if (!match.remainder.length){
+				console.warn("attempting to re-add an existing route");
+				return match.route;
+			
+			// a partial match
+			} else {
+				// even if only 1 remainder, parent becomes the match.route (bridge loops through an empty array, and returns self)
+				parent = match.route.bridge(match.remainder.slice(0, -1));
+			}
+		} else {
+			// again, even if parts.length is 1, this should still work
+			parent = this.bridge(parts.slice(0, -1));
 		}
-		this.routes.push(route);
-		if (!this[route.part]){
-			this[route.part] = route;
-		}
+
+		// create the new route, using the correct parent
+		var args = [].slice.call(arguments, 0);
+		
+		args.unshift({
+			parent: parent
+		});
+
+		route = Route.apply(null, args);
+
 		return route;
 	},
 	push: function(){
 		// the final step, actually displaying the new route
-		if (this.router.transitioning)
-			this.replace();
-		else 
+		if (window.location.pathname === this.path){
+			console.warn("path matches, no need to push");
+		}
+		else if (this.router.firstPush){
+			this.log.error("firstPush");
+			this.router.firstPush = false;
 			this.router.history.push(this.path);
+		} else {
+			this.router.history.replace(this.path);
+		}
 		
 		this.sync();
 	},
@@ -123,64 +187,101 @@ var Route = module.exports = Mod2.Sub.extend({
 		this.parent.isActiveRoute = false;
 
 		this.router.activeRoute = this;
+		this.router.transitioning = false;
+		this.router.routeToBe = false;
+		// this.router.transitionLevel--;
+		// this.log.info("transitionLevel", this.router.transitionLevel);
+
 		this.isActiveRoute = true;
 		this.active = true;
 
 		this.activeChild = false;
+		this.parent.view.sync();
+		this.view.sync();
 	},
 	replace: function(){
 		this.router.history.replace(this.path);
 	},
 	activate: function(){
+		if (this.router.transitionLevel === 0){
+			this.router.firstPush = true;
+			console.error("activate + tL === 0");
+		}
+		this.router.transitionLevel++;
+		this.log.info("transitionLevel", this.router.transitionLevel);
+
+		var ret;
 		if (this.isActiveRoute){
-			return this.alreadyActiveRoute();
+			ret = this.alreadyActiveRoute();
 		} else if (this.active){
 			this.log("activeChild.deactivate()");
 			// !this.isActiveRoute, so one of this children must be
-			return this.activeChild.deactivate();
+			ret = this.activeChild.deactivate();
 		} else if (this.router.activeRoute !== this.parent){
-			// then make it so
-				// this will loop, climbing the path hierarchy back towards the root route
-				// each route asks its parent to activate, and then activateSelf, and returns it, so we basically have our deactivate until common base, and reactivate from commonBase until this, all in one.
 			this.log("parent.activate().then(this.activateSelf)");
-			return this.parent.activate()
+			ret = this.parent.activate()
 				.then(this.activateSelf.bind(this));
 		} else {
 			this.log("activateSelf()")
-			// .activeRoute is this.parent
-			return this.activateSelf();
+			ret = this.activateSelf();
 		}
+
+		return ret.then(function(){
+			this.router.transitionLevel--;
+			this.log.info("transitionLevel", this.router.transitionLevel);
+		}.bind(this));
 	},
 	alreadyActiveRoute: function(){
 		this.log("already activeRoute");
 		return Promise.resolve();
 	},
 	activateSelf: function(){
+		var route = this;
+		this.router.transitioning = true;
+		this.router.routeToBe = this;
 		return Promise.all(this.cbs.map(function(cb){
-			return cb();
+			return cb.call(route);
 		})).then(this.push.bind(this));
 		// run the CBs, then set the url when they're all complete.
 	},
 	deactivate: function(){
+		if (this.router.transitionLevel === 0){
+			this.router.firstPush = true;
+			console.error("deactivate + tL === 0");
+		}
+		this.router.transitionLevel++;
+		this.log.info("transitionLevel", this.router.transitionLevel);
+		var ret;
 		if (this.isActiveRoute){
-			return this.deactivateSelf();
+			ret = this.deactivateSelf();
 		} else if (this.active){
-			// and not activeRoute...
-				// this will climb down the route hierarchy to find the activeRoute, run its deactivation, and all the parent's are chained onto it.
-			return this.activeChild.deactivate()
+			ret = this.activeChild.deactivate()
 				.then(this.deactivateSelf.bind(this));
 		} else {
 			console.warn("not active");
-			return Promise.resolve();
+			ret = Promise.resolve();
 		}
+
+		return ret.then(function(){
+			this.router.transitionLevel--;
+			this.log.info("transitionLevel", this.router.transitionLevel);
+		}.bind(this));
 	},
 	deactivateSelf: function(){
+		var route = this;
+
+		// router needs to be in transitioning = true mode before we history.pushState
+		this.router.transitioning = true;
+		// this.router.transitionLevel++;
+		// this.log.info("transitionLevel", this.router.transitionLevel);
+
 		// page deactivation (transition) needs to follow route drop...
 		this.drop();
+			// drop uses parent.push, which turns transitioning off
 
 		// execute dcbs as promisified array
 		return Promise.all(this.dcbs.map(function(cb){
-			return cb(); // return promise from cb to delay anything added to deactivate()
+			return cb.call(route); // return promise from cb to delay anything added to deactivate()
 		}));
 	},
 	// goes from root.com/parent/this-route-part/ to root.com/parent/, just dropping this route part from the URL
@@ -189,9 +290,22 @@ var Route = module.exports = Mod2.Sub.extend({
 		// just removes this current /part/ from the URL
 		this.active = false;
 		this.isActiveRoute = false;
+		this.view.sync();
 		this.parent.push();
 	},
+	then: function(cb, dcb){
+		this.cbs.push(cb);
+		if (dcb)
+			this.andThen(dcb);
+		return this;
+	},
+	andThen: function(dcb){
+		this.dcbs.push(dcb);
+		return this;
+	},
 });
+
+Route.prototype.set.mfn.rewrapAll(Route.prototype);
 
 /*
 With promisified cbs, we can optionally delay the sequence by returning a promise from a CB.

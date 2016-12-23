@@ -200,7 +200,6 @@ var Route = module.exports = Mod2.Sub.extend({
 		this.dcbs.push(dcb);
 		return this;
 	},
-
 	logAll: function(){
 		this.log.group("routes:", this.routes.length);
 		for (var i = 0; i < this.routes.length; i++){
