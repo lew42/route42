@@ -11,7 +11,6 @@
 }
 
 .item {
-	margin-top: 8px;
 }
 
 .active {
@@ -20,4 +19,28 @@
 
 .isActiveRoute {
 	border: 1px solid orange;
+}
+
+.page {
+	padding: 1em;
+	margin-bottom: 1em;
+	background: #fff;
+	cursor: pointer;
+	&.dark {
+		background: #eee;
+	}
+	h3 {
+		margin: 0;
+	}
+	> .children {
+		margin-top: 1em;
+		:last-child {
+			margin-bottom: 0;
+		}
+	}
+}
+
+.well {
+	padding: 2em;
+	background: #ddd;
 }

@@ -15,10 +15,11 @@ var log = logger();
 var Route = module.exports = Mod2.Sub.extend({
 	name: "Route3",
 	View: RouteView,
-	log: true,
+	// log: true,
 	cbs: [],
 	dcbs: [],
 	routes: [],
+	toggle: true, // a UI switch
 	set: {
 		other: function(route, value){
 			if (is.str(value))
@@ -47,14 +48,14 @@ var Route = module.exports = Mod2.Sub.extend({
 	},
 	init: function(){
 		this.log("new route:", this.path);
-		this.cbs.push(function(){
-			// debugger;
-			return this.view.header.label.slideDown().$el.promise();
-		});
-		this.dcbs.push(function(){
-			// debugger;
-			return this.view.header.label.slideUp().$el.promise();
-		});
+		// this.cbs.push(function(){
+		// 	// debugger;
+		// 	return this.view.header.label.slideDown().$el.promise();
+		// });
+		// this.dcbs.push(function(){
+		// 	// debugger;
+		// 	return this.view.header.label.slideUp().$el.promise();
+		// });
 	},
 	render: function(){
 		this.view = new this.View({
@@ -106,7 +107,7 @@ var Route = module.exports = Mod2.Sub.extend({
 		var childMatch;
 		if (parts.length){
 			childMatch = this.each(function(route){
-				console.log("child:", route);
+				// console.log("child:", route);
 				// truthy breaks loop, falsey continues search
 				return route.match(parts);
 			});
@@ -156,6 +157,16 @@ var Route = module.exports = Mod2.Sub.extend({
 			parent = this.bridge(parts.slice(0, -1));
 		}
 
+		// set a potential long/path to just the last path part
+		path = parts[parts.length - 1];
+
+		// fix the arguments to convert long/path to the single path part
+		if (is.str(route)){
+			route = path;
+		} else {
+			route.path = path;
+		}
+
 		// create the new route, using the correct parent
 		var args = [].slice.call(arguments, 0);
 		
@@ -170,6 +181,7 @@ var Route = module.exports = Mod2.Sub.extend({
 	push: function(){
 		// the final step, actually displaying the new route
 		if (window.location.pathname === this.path){
+			// debugger;
 			console.warn("path matches, no need to push");
 		}
 		else if (this.router.firstPush){
@@ -196,8 +208,9 @@ var Route = module.exports = Mod2.Sub.extend({
 		this.active = true;
 
 		this.activeChild = false;
-		this.parent.view.sync();
-		this.view.sync();
+
+		this.parent.view && this.parent.view.sync();
+		this.view && this.view.sync();
 	},
 	replace: function(){
 		this.router.history.replace(this.path);
@@ -205,7 +218,7 @@ var Route = module.exports = Mod2.Sub.extend({
 	activate: function(){
 		if (this.router.transitionLevel === 0){
 			this.router.firstPush = true;
-			console.error("activate + tL === 0");
+			// console.error("activate + tL === 0");
 		}
 		this.router.transitionLevel++;
 		this.log.info("transitionLevel", this.router.transitionLevel);
@@ -243,6 +256,20 @@ var Route = module.exports = Mod2.Sub.extend({
 			return cb.call(route);
 		})).then(this.push.bind(this));
 		// run the CBs, then set the url when they're all complete.
+	},
+	softActivate: function(){
+		// just exec CBs, without doing all the promise/transition stuff
+		var route = this;
+
+		if (this.parent)
+			this.parent.softActivate(); // should climb back to router
+
+		this.sync(); // set all the state
+		this.router.routeToBe = this; // just in case we need that 
+
+		this.cbs.forEach(function(cb){
+			cb.call(route);
+		});
 	},
 	deactivate: function(){
 		if (this.router.transitionLevel === 0){

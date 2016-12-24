@@ -12,8 +12,7 @@ var Router = require("./Router3");
 var Page = require("./Page");
 // var Router = Route.Router;
 
-test("initialize router", function(){
-	var router = window.router = Router("/test/route42/Route3/Route3/initialize-router/");
+	var router = window.router = Router("/test/route42/Route3/Route3/");
 	// router.useCurrent();
 
 	var a = router.add("a");
@@ -51,4 +50,3 @@ test("initialize router", function(){
 	// });
 	// route.activate();
 	// page.activate();
-});

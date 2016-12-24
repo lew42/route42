@@ -9,6 +9,10 @@ var RouterView = require("./RouterView");
 var Router = module.exports = Route.extend({
 	name: "Router3",
 	View: RouterView,
+	set_path: function(path){
+		this.path = path;
+		this.parts = shared.parts(this.path);
+	},
 	path: "/",
 	part: "",
 	parts: [],
@@ -21,17 +25,11 @@ var Router = module.exports = Route.extend({
 		this.history.listen(this.historyListener.bind(this));
 	},
 	historyListener: function(location, action){
-		// route.activate and deactivate both flip the .transitioning switch before pushing any state, so we can skip those without rematching and reactivating
 		if (!this.transitioning){
-			this.log.info("would be matching + activating, but eliminating that option");
-			// this.matchAndActivate();
+			this.matchAndActivate(true);
 		} else {
 			this.log.info("already in transition, skipping");
 		}
-	},
-	set_path: function(path){
-		this.path = path;
-		this.parts = shared.parts(this.path);
 	},
 	useCurrent: function(){
 		this.path = window.location.pathname;
@@ -48,18 +46,23 @@ var Router = module.exports = Route.extend({
 		this.active = true;
 
 		this.activeChild = false;
-		this.view.sync();
+		this.view && this.view.sync();
 	},
 	getCurrentURLPathParts: function(){
 		// an attempt to make the router work when dropped on any given relative page
 		return shared.parts(window.location.pathname.replace(this.path, ""));
 	},
-	matchAndActivate: function(){
+	matchAndActivate: function(hard){
 		// this.log.group("matchAndActivate");
+		// debugger;
 		var match = this.match(this.getCurrentURLPathParts());
 		if (match){
-			match.route.remaining = match.remaining;
-			match.route.activate();
+			this.log((hard?"hard ":"") + "match found", match)
+			match.route.remainder = match.remainder;
+			if (hard)
+				match.route.activate();
+			else
+				match.route.softActivate();
 		}
 		// this.log.end();
 		return this;

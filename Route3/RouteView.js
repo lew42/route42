@@ -1,6 +1,8 @@
 var View = require("view42");
 require("./Route3.less");
 
+var Promise = require("bluebird");
+
 var FlexValue = View.extend({
 	addClass: "flex-value",
 	left: View.x(),
@@ -22,20 +24,37 @@ var RouteView = module.exports = View.extend({
 	name: "RouteView",
 	addClass: "route",
 	header: View.Item.x({
+		icon: "circle",
+		btn: "bolt",
 		content: function(){
-			var route = this.parent.parent;
+			var routeView = this.parent;
+			var route = routeView.parent;
 
 			this.set({
-				icon: "circle",
-				label: route.part
-			})
+				label: route.part || route.path
+			});
+
+			this.btn.click(function(){
+				
+				if (route.router.toggle){
+					Promise.resolve().then(function(){
+						return route.router.view.body.slideUp().$el.promise();
+					}).then(function(){
+						return route.activate();
+					});
+				} else {
+					route.activate();
+				}
+			});
+
+			this.label.click(function(){
+				if (route.router.toggle)
+					routeView.body.slideToggle();
+			});
 
 			this.icon.render();
 			this.label.render();
-
-			this.click(function(){
-				route.activate();
-			});
+			this.btn.render();
 		}
 	}),
 	body: View.x(function(){
@@ -57,6 +76,8 @@ var RouteView = module.exports = View.extend({
 	}),
 	content: function(){
 		this.header.render();
+		if (!this.parent.router.expand)
+			this.body.hide();
 		this.body.render();
 	},
 	sync: function(){
