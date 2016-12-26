@@ -239,6 +239,19 @@ var Route = module.exports = Mod2.Sub.extend({
 			}
 		}
 	},
+	// assume activate() means push
+	// assume we only run CBs for this route
+	// we then only need to setup the rest...
+	activate2: function(){},
+	setup: function(){
+		if (!this.isActiveNode){
+			if (this.active){
+				this.activeChild.
+			}
+		} else {
+			// do nothing?
+		}
+	},
 	deactivate: function(push){
 		push = is.def(push) ? push : true;
 
